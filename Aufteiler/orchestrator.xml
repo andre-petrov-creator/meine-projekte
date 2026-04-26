@@ -165,7 +165,7 @@
     <sheets>
       <sheet name="BESICHTIGUNG">Objekt-Stammdaten, Modernisierungsstand-Zusammenfassung. Inputs aus Modul 1, 2.</sheet>
       <sheet name="KALKU">Einkaufspreis, Portalpreise, AfA-Korridor, Finanzierung. Inputs aus Modul 1, 3. Rechnet: Gesamterloese, Renditen.</sheet>
-      <sheet name="RENO">Massnahmen-Katalog mit Kosten pro Gewerk. Inputs aus Modul 2. Liefert T4 fuer MIETER-Sheet.</sheet>
+      <sheet name="RENO">Massnahmen-Katalog mit Kosten pro Gewerk. Inputs aus Modul 2 (Sanierungs-Positionen) und aus Modul 4 (Mietsubventions-Pauschale in K105, Pos. 94 "Miet Subvention", aus Step 8). Liefert T4 fuer MIETER-Sheet.</sheet>
       <sheet name="MIETER">Mieten pro WE. Inputs aus Modul 4 (M6, P6, A8:K27, Y8:Y27 per-WE Mietspiegel-Obergrenze). Inputs aus Modul 2 (T4 via RENO!O8). Rechnet: IST-Miete, NEU mit Avg-Cap (Y+M6)/2, SOLL = (Y+T6)*F, JNKM, Renditen.</sheet>
       <sheet name="VERKAUFSMATRIX">Hybrid pro WE: U-Spalte = Markt-VK Wohnung (Portalpreis ± WE-Eigenschaften), V-Spalte = zugeordnete Garage/Stellplatz (manuelle Eingabe pro WE), X-Spalte = individueller Auf-/Abschlag. Y = VK_CF!I + V + X = Bundle-VK pro WE inkl. zugeordneter Garage. SUMME-Zeile 26: U26=Wohnungen-Markt, V26=Garagen, Y26=Bundle.</sheet>
       <sheet name="VK_CF">Cashflow-Rueckrechnung Wohnungen aus Kaeufer-Sicht. DYNAMISCH ueber Slider (Zins, Tilgung, Steuer, Bewirtschaftung, AfA, Gebaeudeanteil, CF-Ziel). Referenziert MIETER!R (Nettokaltmiete pro WE). Spalten: Nettokaltmiete EUR/Mo, EUR/m^2, Verkaufspreis EUR, Verkaufspreis EUR/m^2. Bewirtschaftung wirkt INLINE in VK-Formel. Vergleichsblock Z41-50: Wohnungen Markt (VERKAUFSMATRIX!U26) vs Wohnungen Cashflow (I38) - GARAGEN HIER NICHT ENTHALTEN.</sheet>
@@ -186,7 +186,7 @@
       Modul 1: BESICHTIGUNG B6-B9 (Adresse, m2, Baujahr, WE-Anzahl), KALKU Bodenrichtwert, Gebaeudeanteil.
       Modul 2: RENO-Block (ENERGETISCH, GEMEINSCHAFT, JE_WE, JE_WE_KUECHE, WEG-Aufteilung), BESICHTIGUNG A41 (Modernisierungsstand).
       Modul 3: KALKU C24-C29 (AfA-Korridor, RND-Korridor, Modernisierungspunkte).
-      Modul 4: MIETER M6 (Mietspiegel-Mittelwert VOR Sanierung), MIETER P6 (Kappungsgrenze), MIETER A8:K27 (WE-Stamm-Tabelle), MIETER Y8:Y27 (per-WE Mietspiegel-Obergrenze - PFLICHT, sonst R=0), BESICHTIGUNG B33-B36.
+      Modul 4 (v2.0): MIETER M6 (Mietspiegel-Mittelwert VOR Sanierung), MIETER P6 (Kappungsgrenze), MIETER A8:K27 (WE-Stamm-Tabelle), MIETER Y8:Y27 (per-WE Mietspiegel-Obergrenze - PFLICHT, sonst R=0), BESICHTIGUNG B33-B36, MIETER U6 (Immometrika-Validation-Notiz aus Step 2.5 NEU), RENO K105 (Mietsubventions-Pauschale aus Step 8 NEU).
       Modul 5: Verdict im Chat (kein Excel-Output, bewertet Excel-Ergebnisse).
     </was_module_liefern>
     

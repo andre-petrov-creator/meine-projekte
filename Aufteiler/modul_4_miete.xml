@@ -1,5 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<modul name="Mietsituation" id="4" version="1.3" language="de">
+<modul name="Mietsituation" id="4" version="2.0" language="de">
+
+  <!--
+    MODUL 4 v2.0 - AENDERUNGEN ggue. v1.3:
+
+    1. Step 2.5 NEU: Immometrika-Marktvalidation als Pflicht-Stop.
+       User muss Markt-Median, Vermarktungsdauer, Inserate-Anzahl eingeben.
+       Validation Fall A/B/C steuert Empfehlung fuer M6/Y.
+       Vor Step 3 wird das Modul gestoppt bis User-Inputs vorliegen.
+
+    2. Step 8 NEU: Mietsubvention als deterministische Stufen-Berechnung.
+       Pro WE Stufenmiete IST -> Y_we*F_we (per WE Spannenobergrenze).
+       Stufe 0 = 3 Mo Anlauf, Folge-Stufen = 36 Mo (Kappungsintervall NRW).
+       §558-only-Pfad (kein Mieterwechsel im Default).
+       Aggregat als Pauschal-Position fuer RENO!K105.
+
+    3. M6-Definition unveraendert (Option alpha):
+       M6 bleibt Wohnflaechen-gewichteter Mittelwert der Soll-Mittel
+       ueber alle WE (Step 2). Y per WE bleibt das Aufteiler-Argument
+       fuer SOLL-Vermarktungsmiete (Excel-Output Y8:Y27).
+       Cap in MIETER!N bleibt (Y+M6)/2.
+
+    AENDERUNGEN v1.3 vs v1.2 (Refactor 2026-04-26):
+    - MIETER!Y8:Y27 als per-WE Mietspiegel-Obergrenze (Excel-Output)
+    - MIETER!R = (Y+T6)*F
+    - MIETER!N Cap = (Y+M6)/2
+    - Terminologie Soll-Miete -> Kaltmiete SOLL
+  -->
 
   <!--
     MODUL 4 - MIETSITUATION (EXCEL-AWARE, OPTION C)
@@ -307,6 +334,80 @@
       </varianten>
     </step>
 
+    <step n="2.5" name="immometrika_validation" pflicht="ja">
+      <task>
+        Markt-Validation des berechneten M6 (und Y per WE) gegen aktuellen Mietmarkt.
+        Quelle: Immometrika (User-Recherche oder integriertes Tool).
+        PFLICHT-STOP: User muss drei Werte eingeben bevor Step 3 laeuft.
+      </task>
+
+      <user_input_pflicht>
+        <field name="markt_median_eur_qm">
+          Markt-Median Mietpreis aus Immometrika EUR/m^2
+          (alternativ IS24/Immowelt aktuelle Inserate Median)
+        </field>
+        <field name="vermarktungsdauer_tage">
+          Median Online-Dauer der Mietinserate (Tage bis Inserat verschwindet)
+        </field>
+        <field name="anzahl_inserate">
+          Anzahl der ausgewerteten Inserate (Stichprobe)
+        </field>
+      </user_input_pflicht>
+
+      <stop_logik>
+        Wenn User-Inputs nicht vorliegen -> Modul stoppt.
+        Frage an User: "Bitte folgende Immometrika-Werte fuer Stadtteil [X] eingeben:
+          1. Markt-Median EUR/m^2: ?
+          2. Vermarktungsdauer Median (Tage): ?
+          3. Anzahl Inserate (Stichprobe): ?"
+      </stop_logik>
+
+      <validation_logik>
+        Vergleich M6 (gewichteter Mittelwert) gegen Markt-Median:
+
+        Fall A: Markt-Median > M6 -> "Mietspiegel-Mittelwert KONSERVATIV gegenueber Markt"
+                -> Y per WE darf nach oben gepinzettet werden (innerhalb MPB-Cap +10%)
+                -> Aufteiler-Hebel staerker als Mietspiegel-Berechnung suggeriert
+
+        Fall B: Markt-Median ungefaehr M6 (+/-5%) -> "Marktkonform"
+                -> Y per WE als Default beibehalten
+
+        Fall C: Markt-Median deutlich kleiner M6 -> "Mietspiegel-Mittelwert UEBER Markt"
+                -> Pinzettenwertung in Step 1 reduzieren oder Y per WE absenken
+                -> Aufteiler-Hebel realistisch niedriger als Berechnung
+
+        Vermarktungsdauer-Check:
+        - kleiner 30 Tage: hohe Nachfrage, Wiedervermietbarkeit gesichert
+        - 30-60 Tage: mittlere Nachfrage
+        - groesser 60 Tage: schwacher Markt, Leerstands-Risiko erhoeht
+
+        Anzahl Inserate:
+        - groesser 100: gute Marktdaten-Basis
+        - 50-100: mittlere Basis
+        - kleiner 50: duenne Datenlage, Markt-Median mit Vorsicht
+      </validation_logik>
+
+      <output_table>
+        | Quelle | EUR/m^2 | Charakter |
+        | Mietspiegel M6 (Mittelwert, Step 2) | … | berechnet |
+        | Y-Mittelwert ueber alle WEs (Spannenobergrenze) | … | berechnet |
+        | Markt-Median Immometrika | … | User-Input |
+        | Differenz absolut M6 vs Markt | … EUR/m^2 | berechnet |
+        | Differenz relativ M6 vs Markt | …% | berechnet |
+        | Vermarktungsdauer Median | … Tage | User-Input |
+        | Anzahl Inserate | … | User-Input |
+        | Validation | A / B / C | berechnet |
+        | Empfehlung Y-Anpassung | beibehalten / +X% / -Y% | abgeleitet |
+      </output_table>
+
+      <core_rules>
+        <rule priority="HIGH">User-Stop ist PFLICHT vor Step 3 — keine Annahmen ohne Markt-Validation.</rule>
+        <rule>Vermarktungsdauer als Risiko-Indikator in Modul 5 Risikoeinschaetzung uebernehmen.</rule>
+        <rule>Wenn Markt-Median deutlich unter M6 (groesser 10%): Pinzettenwertung in Step 1 neu hinterfragen, Begruendung nachschaerfen oder Y per WE absenken.</rule>
+        <rule>Excel-Eintrag MIETER!U6 (oder freier Cell): Notiz mit Immometrika-Werten + Validation-Ergebnis als Audit-Trail.</rule>
+      </core_rules>
+    </step>
+
     <step n="3" name="kappungsgrenze">
       <task>Aus Stadt-Page Property Kappungsgrenze uebernehmen. Dezimal fuer Excel P6.</task>
     </step>
@@ -363,6 +464,95 @@
       </excel_wird_rechnen>
     </step>
 
+    <step n="8" name="mietsubvention_berechnen" pflicht="ja">
+      <task>
+        Pro WE deterministische Stufen-Subvention von IST-Miete auf Y_we * F_we (per-WE Spannenobergrenze).
+        Σ aller Wohn-WE als Pauschal-Position fuer RENO!K105.
+        WICHTIG: Y per WE wird verwendet (NICHT M6), damit per-WE-Granularitaet erhalten bleibt.
+      </task>
+
+      <annahmen verbindlich="true">
+        <a>§558-only-Pfad (kein Mieterwechsel im Default)</a>
+        <a>Stufe 0 = 3 Mo Anlauf-/Ueberlegungsfrist</a>
+        <a>Folge-Stufen je 36 Mo (Kappungsgrenze-Intervall, stadtspezifisch aus Step 3)</a>
+        <a>Erhoehung pro Stufe: vorherige Miete * (1 + Kappungsgrenze)</a>
+        <a>Cap pro WE auf SOLL_we = Y_we * F_we (per WE Spannenobergrenze * Wohnflaeche)</a>
+        <a>Garagen NICHT enthalten (separater Posten in VERKAUFSMATRIX!V)</a>
+        <a>Keine Zinsen, keine §559-Umlage, keine Mieterwechsel-Annahme</a>
+      </annahmen>
+
+      <formel>
+        k = Kappungsgrenze (z.B. 0,15 NRW; aus Step 3)
+        SOLL_we = Y_we * F_we (per WE)
+
+        Pro WE:
+          Stufenmiete_n = MIN(IST_we * (1+k)^n; SOLL_we)
+          Diff_n = SOLL_we − Stufenmiete_n
+          Dauer_Stufe_0 = 3 Mo
+          Dauer_Stufe_n>0 = 36 Mo
+          Subv_Stufe_n = Diff_n * Dauer_Mo
+          n_voll = AUFRUNDEN(LOG(SOLL_we / IST_we) / LOG(1+k) − 1; 0)
+          Reach-Time_we = 3 + n_voll * 36 Monate
+          Subv_we = Σ Subv_Stufe fuer n=0 bis n_voll
+
+        Aggregat:
+          Subv_Total = Σ Subv_we ueber alle Wohn-WE (Garagen ausgeschlossen)
+      </formel>
+
+      <output_table_pro_we>
+        | Stufe | Mo. ab Uebernahme | Dauer Mo | Stufenmiete | Diff EUR/Mo | Subvention EUR |
+      </output_table_pro_we>
+
+      <output_table_aggregat>
+        | WE | IST | SOLL_we (Y*F) | Reach-Time J | Subvention EUR |
+        Σ pauschal in letzter Zeile.
+      </output_table_aggregat>
+
+      <excel_ziel>
+        RENO!I105 = 1 (Menge psch — bereits gesetzt in Vorlage)
+        RENO!J105 = "psch" (bereits gesetzt)
+        RENO!K105 = Subv_Total (Pauschalpreis netto)
+        RENO!F105 = "Miet Subvention" (bereits gesetzt)
+      </excel_ziel>
+
+      <validierungs_test_vektor name="Prosperstr59_WE01">
+        Inputs: IST=380,40; F=92,98; Y=8,65; k=0,15
+        SOLL_we = 8,65 * 92,98 = 804,28 EUR/Mo
+        Faktor SOLL/IST = 2,114
+        n_voll = AUFRUNDEN(LOG(2,114)/LOG(1,15) − 1; 0) = AUFRUNDEN(4,34; 0) = 5
+        Reach-Time = 3 + 5*36 = 183 Mo (15,25 J.)
+        Subv_WE01 ungefaehr 39.859 EUR (vergleichbar mit altem Plan)
+      </validierungs_test_vektor>
+
+      <validierungs_test_vektor name="Prosperstr59_alle_5_WE">
+        Inputs:
+          WE 01: IST=380,40 F=92,98 Y=8,65 -> SOLL=804,28
+          WE 02: IST=435,12 F=93,39 Y=8,69 -> SOLL=811,49
+          WE 03: IST=630,00 F=92,04 Y=8,97 -> SOLL=825,60
+          WE 04: IST=530,00 F=95,45 Y=8,73 -> SOLL=833,28
+          WE 05: IST=349,12 F=85,99 Y=8,72 -> SOLL=749,83
+        Erwartete Σ Subvention: ungefaehr 125.000 - 126.000 EUR
+        (alter Plan sagte 125.530,62 mit uniform M6=8,75; mit per-WE Y leicht abweichend)
+      </validierungs_test_vektor>
+
+      <core_rules>
+        <rule>Mietsubvention pro WE einzeln, dann Aggregat-Pauschal.</rule>
+        <rule>Stufe 0 = 3 Mo, Folge = 36 Mo (aus Kappungsintervall).</rule>
+        <rule>Cap pro WE auf SOLL_we = Y_we * F_we — kein Ueberschiessen.</rule>
+        <rule>Garagen NICHT enthalten (Asset-Trennung gemaess orchestrator.xml).</rule>
+        <rule>NICHT §559-faehig — fliesst NICHT in MIETER!T4.</rule>
+        <rule>Keine Mieterwechsel-Annahme im Default (kann optional als Sensitivitaet ergaenzt werden).</rule>
+        <rule>Pro WE Y_we verwenden, NICHT einheitliches M6 — Per-WE-Granularitaet ist v1.3-Architektur.</rule>
+      </core_rules>
+
+      <safety>
+        <check>Wenn IST_we groesser-gleich SOLL_we: Subvention = 0, Hinweis "Miete bereits ueber/auf Ziel".</check>
+        <check>Wenn Faktor SOLL_we / IST_we groesser 3,0: Plausibilitaetswarnung "extreme Reach-Time".</check>
+        <check>Wenn Reach-Time groesser 20 J.: Hinweis "Strategie hinterfragen, Mieterwechsel-Pfad realistischer".</check>
+        <check>Wenn Y_we leer: WE ueberspringen mit Hinweis "Y fehlt fuer WE [n], Subvention nicht berechenbar".</check>
+      </safety>
+    </step>
+
   </workflow>
 
   <!-- ============================================================ -->
@@ -394,17 +584,22 @@
       | MIETER        | A8:K27        | WE-Stamm-Tabelle                       | Modul 4 Step 4 |
       | MIETER        | Y8:Y27        | Mietspiegel-Obergrenze pro WE EUR/qm        | Modul 4 Step 1 (O = K x 1,18) |
       | MIETER        | T4            | Aufteiler-Sanierungskosten             | Modul 2 (nicht Modul 4) |
+      | MIETER        | U6            | Immometrika-Validation-Notiz (Audit-Trail) | Modul 4 Step 2.5 NEU |
+      | RENO          | I105          | Menge psch Mietsubvention (= 1, in Vorlage gesetzt) | Modul 4 Step 8 NEU |
+      | RENO          | J105          | Einheit "psch" (in Vorlage gesetzt)    | Modul 4 Step 8 NEU |
+      | RENO          | K105          | Mietsubvention pauschal akkumuliert    | Modul 4 Step 8 NEU |
       | BESICHTIGUNG  | B33           | IST Jahresnettokaltmiete               | Σ J × 12       |
       | BESICHTIGUNG  | B34           | Kappungsgrenze Prozent                 | Modul 4 Step 3 |
       | BESICHTIGUNG  | B36           | SOLL Jahresnettokaltmiete              | Σ Soll-Mittel × 12 (nur als Hinweis, Excel rechnet R31) |
     </ziel_zellen>
-    
+
     <ablauf_excel_uebergabe>
       1. Modul 2 hat T4 gesetzt (RENO!O8 Referenz oder direkt)
       2. Modul 4 setzt M6, P6, A8:K27, Y8:Y27 (per-WE Mietspiegel-Obergrenze)
-      3. Excel rechnet automatisch T5, T6, Spalten L/M/N/P/Q/R/T/W (R = Y x F, N nutzt (Y+M6)/2 als Cap)
-      4. Excel rechnet Summen J31, N31, R31
-      5. Excel rechnet KALKU!P29, P31, P32 (Renditen)
+      2.5 Modul 4 PFLICHT-STOP: Immometrika-Inputs vom User holen, in MIETER!U6 dokumentieren (Step 2.5 NEU)
+      3. Excel rechnet automatisch T5, T6, Spalten L/M/N/P/Q/R/T/W (R = (Y+T6) x F, N nutzt (Y+M6)/2 als Cap)
+      4. Modul 4 schreibt Mietsubventions-Pauschale in RENO!K105 (Step 8 NEU Output)
+      5. Excel rechnet Summen J31, N31, R31 + KALKU!P29, P31, P32 (Renditen)
     </ablauf_excel_uebergabe>
   </excel_transfer_block>
 
@@ -428,14 +623,18 @@
     <rule>Mietpreisbremse als TEXT-Hinweis (Excel hat keine eigene Logik).</rule>
     <rule>WE-Stamm-Tabelle: Datums im ISO-Format fuer Excel EDATE-Funktion.</rule>
     <rule>Bei [FEHLT]-Werten: Excel-Zellen leer (nicht erfinden).</rule>
+    <rule priority="HIGH" name="IMMOMETRIKA_PFLICHT">Step 2.5 ist PFLICHT-STOP. Step 3 darf nicht laufen ohne User-Inputs (Markt-Median, Vermarktungsdauer, Anzahl Inserate).</rule>
+    <rule priority="HIGH" name="MIETSUBVENTION_DETERMINISTISCH">Step 8 nutzt feste Stufen-Formel (Stufe 0 = 3 Mo, Folge = 36 Mo). Pro WE Y_we * F_we als Cap. Σ als Pauschale in RENO!K105.</rule>
+    <rule>Mietsubvention NICHT in T4 (nicht §559-faehig). T4 bleibt nur Modul-2-Modernisierungskosten.</rule>
+    <rule>Garagen aus Subvention ausgeschlossen — Asset-Trennung (Orchestrator-Regel).</rule>
   </core_rules>
 
   <!-- ============================================================ -->
   <!-- TOKEN-BUDGET                                                  -->
   <!-- ============================================================ -->
   <token_budget>
-    <max_tool_calls>2</max_tool_calls>
-    <verteilung>1 Notion-Search Stadt, 1 Notion-Fetch Stadt-Page</verteilung>
+    <max_tool_calls>3</max_tool_calls>
+    <verteilung>1 Notion-Search Stadt, 1 Notion-Fetch Stadt-Page, 1 optional Immometrika-Lookup wenn User Tool nutzt</verteilung>
   </token_budget>
 
   <!-- ============================================================ -->
@@ -452,6 +651,9 @@
     <check>T4-Verification: pruefen dass Modul 2 T4 gesetzt hat (sonst Excel rechnet Umlage mit 0).</check>
     <check>WE-Renovierung (350/450 EUR/qm) darf NICHT in T4 fliessen (nicht §559-faehig).</check>
     <check>WEG-Aufteilung (15.000 EUR) darf NICHT in T4 fliessen (nicht §559-faehig).</check>
+    <check>Wenn User Immometrika-Inputs verweigert: Modul stoppt mit klarem Hinweis. Step 3+ darf nicht laufen.</check>
+    <check>Wenn RENO!105 keine "Miet Subvention"-Zeile vorhanden ist: Warnung mit Hinweis, dass die Position in der Excel-Vorlage fehlt.</check>
+    <check>Plausi-Test Subvention: Wenn |Σ Subv − (Σ (SOLL_we − IST_we) * Reach-Time_we)| zu gross: Stufen-Formel-Bug, debuggen.</check>
   </safety>
 
   <!-- ============================================================ -->
