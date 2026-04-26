@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<claude_prompt name="Aufteiler Orchestrator" version="2.2" language="de">
+<claude_prompt name="Aufteiler Orchestrator" version="2.3" language="de">
 
   <!--
-    SCHLANKER ORCHESTRATOR v2.2
+    SCHLANKER ORCHESTRATOR v2.3
     Liegt als Projektanweisung im Claude-Projekt.
     Module werden bei Bedarf per web_fetch von GitHub geladen.
     Jedes Modul ist autark und liefert eigenen Excel-Transfer-Block.
-    
+
+    AENDERUNGEN v2.3 vs v2.2:
+    - Modul 5 (Verdict-Export PDF) NICHT mehr automatisch in Vollanalyse-Sequenz
+    - Vollanalyse-Sequenz: 0,1,2,3,4 (Modul 5 raus)
+    - Neuer Modus "nur_export" sequence="5" trigger="Export, PDF, Verdict-PDF, Endbericht"
+    - Step 8 (Sequenz-Ende): Orchestrator fragt EXPLIZIT
+      "Soll die Vollanalyse als PDF exportiert werden? (ja/nein)"
+    - Bei User-"ja"/"j"/"yes": Modul 5 laden und ausfuehren
+    - Bei "nein"/"n"/"no" oder Schweigen: Sequenz beenden ohne PDF
+    - Modul 5 fuehrt KEINE Berechnungen durch - konsumiert nur Outputs M0-M4
+    - Modul 5 nutzt Visualizing Tool (matplotlib) fuer 11 Charts im PDF
+    - Modul 5 spiegelt Notizen in Excel-Cells (Comments + freie Notiz-Zellen)
+
     AENDERUNGEN v2.2 vs v2.1:
     - Modul 4 liefert per-WE Mietspiegel-Obergrenze in MIETER!Y8:Y27 (NEU)
     - MIETER!R neu: =(Y+T6)*F (Mietspiegel-Obergrenze + Mod-Umlage * Wohnflaeche)
@@ -56,7 +68,9 @@
   <!-- AUSFUEHRUNGSMODI                                              -->
   <!-- ============================================================ -->
   <execution_modes>
-    <mode id="vollanalyse" sequence="0,1,2,3,4,5"
+    <!-- WICHTIG v2.3: Vollanalyse endet bei Modul 4. Modul 5 wird am Ende
+         OPTIONAL angeboten und nur auf User-Bestaetigung ausgefuehrt. -->
+    <mode id="vollanalyse" sequence="0,1,2,3,4"
           trigger="Vollanalyse, Komplettanalyse, alles pruefen"/>
     <mode id="quickcheck" sequence="0"
           trigger="Quickcheck, schnelle Einschaetzung, lohnt sich das, Expose hochgeladen ohne Modus-Angabe"/>
@@ -65,7 +79,8 @@
     <mode id="nur_miete" sequence="4" trigger="Nur Miete, Mietanalyse, Kappungsgrenze"/>
     <mode id="nur_massnahmen" sequence="2" trigger="Nur Massnahmen, Reno-Katalog, energetische Sanierung"/>
     <mode id="nur_afa" sequence="3" trigger="Nur AfA, RND-Pruefung, Gutachten-Empfehlung"/>
-    <mode id="nur_verdict" sequence="5" trigger="Nur Verdict, Deal-Einschaetzung"/>
+    <mode id="nur_export" sequence="5"
+          trigger="Export, PDF, Verdict-PDF, Endbericht, Analyse exportieren, Verdict exportieren"/>
   </execution_modes>
 
   <!-- ============================================================ -->
@@ -79,7 +94,22 @@
     <step n="5">Modul liefert am Ende eigenen Excel-Transfer-Block.</step>
     <step n="6">Nach Modul-Ende: 2-3 Zeilen Zwischen-Summary, dann Frage "Weiter mit Modul {NEXT}?".</step>
     <step n="7">Auf explizite Freigabe warten ("go", "weiter", "ja", "ok"). Nie zwei Module ohne Freigabe.</step>
-    <step n="8">Sequenz zu Ende: Hinweis "Werte in Kalkulation_Aufteiler_mit_VK_CF.xlsx uebertragen, Excel rechnet Verkaufspreis und Cashflow automatisch". Falls Modul 5 nicht im Sequence: Frage ob Verdict noch gewuenscht.</step>
+    <step n="8">Sequenz zu Ende: Hinweis "Werte in Kalkulation_Aufteiler_mit_VK_CF.xlsx uebertragen, Excel rechnet Verkaufspreis und Cashflow automatisch."</step>
+    <step n="9" priority="HIGHEST" name="EXPORT_AUF_ANFRAGE">
+      Nach Step 8 EXPLIZIT fragen:
+      "Soll die Vollanalyse jetzt als PDF exportiert werden? (ja/nein)"
+
+      Bei User-Antwort "ja"/"j"/"yes"/"export":
+        - Modul 5 von GitHub laden (web_fetch base_url + modul_5_verdict.xml)
+        - Modul 5 ausfuehren (PDF-Generation + Excel-Notizen)
+        - PDF-Pfad + Excel-Pfad an User uebergeben
+
+      Bei User-Antwort "nein"/"n"/"no" oder Schweigen:
+        - Sequenz beenden ohne PDF
+        - Hinweis "Export jederzeit nachholbar mit Modus 'nur_export'."
+
+      WICHTIG: Modul 5 wird NIE automatisch ohne explizite User-Bestaetigung ausgefuehrt.
+    </step>
   </flow>
 
   <!-- ============================================================ -->
@@ -154,7 +184,52 @@
     <rule>Aufteiler-Massnahmen 2026 NIE in M6 einrechnen (Option C). Kosten gehen in T4.</rule>
     <rule priority="HIGHEST" name="ASSET_TRENNUNG">Wohnungen, Garagen und Stellplaetze NIE in der Verkaufspreis-Berechnung vermischen. Wohnungs-Kaltmiete -> Cashflow-VK in VK_CF (nur Wohnungen). Garagen/Stellplaetze -> Markt-Preis pro WE in VERKAUFSMATRIX!V (manuelle Eingabe aus Grundstuecksmarktbericht). Y in VERKAUFSMATRIX = Bundle (Wohnung+Garage+Adjustment) zur Anzeige; VK_CF Vergleichsblock nutzt NUR Wohnungen-Werte.</rule>
     <rule>Modul 4 muss zusaetzlich zu M6/P6/A8:K27 auch MIETER!Y8:Y27 (per-WE Mietspiegel-Obergrenze) befuellen. Sonst bleibt R = 0 und VK_CF zeigt keine Werte.</rule>
+    <rule priority="HIGHEST" name="MODUL_5_ON_REQUEST">
+      Modul 5 (Verdict-Export PDF) wird NIE automatisch ausgefuehrt.
+      Trigger NUR:
+      (a) User-Anfrage mit Keywords "Export", "PDF", "Verdict-PDF", "Endbericht" (Modus "nur_export")
+      (b) Explizite Bestaetigung "ja" auf Orchestrator-Frage "Soll als PDF exportiert werden?" (Step 9 nach Vollanalyse)
+      Bei Schweigen oder "nein": Sequenz beenden ohne Modul 5.
+    </rule>
   </core_rules>
+
+  <!-- ============================================================ -->
+  <!-- MODUL 5 EXPORT-LOGIK (Fast Prompt)                            -->
+  <!-- ============================================================ -->
+  <modul_5_export priority="HIGH">
+    <prinzip>
+      Modul 5 ist OPTIONAL und nur auf Anfrage. Es fuehrt KEINE neuen Berechnungen
+      durch - es konsumiert nur die Outputs der Module 0-4 + die befuellte Excel
+      und erzeugt:
+      1. PDF-Datei: Aufteiler_&lt;Stadt&gt;_&lt;Strasse&gt;_&lt;YYYY-MM-DD&gt;.pdf
+         (11 Sektionen + 11 Charts via matplotlib Visualizing Tool)
+      2. Excel-Notizen: Comments + freie Notiz-Zellen in Kalkulation_Aufteiler.xlsx
+    </prinzip>
+
+    <fast_prompt_aktivierung>
+      Aktivierung 1 (User-Trigger):
+        User sagt "Export" / "PDF" / "Verdict-PDF" / "Endbericht" / "Analyse exportieren"
+        → Orchestrator setzt Modus auf "nur_export", laedt Modul 5, fuehrt aus.
+
+      Aktivierung 2 (Sequenz-Ende-Frage):
+        Nach Vollanalyse (Modul 4 abgeschlossen) fragt Orchestrator (Step 9):
+        "Soll die Vollanalyse jetzt als PDF exportiert werden? (ja/nein)"
+        → Bei "ja": Modul 5 laden + ausfuehren.
+        → Bei "nein"/Schweigen: Sequenz beenden, Hinweis dass Export nachholbar.
+    </fast_prompt_aktivierung>
+
+    <input_pflicht>
+      - Module 0-4 muessen durchgelaufen sein (Outputs im Chat)
+      - Excel Kalkulation_Aufteiler ist befuellt (manuell durch User vor Export)
+      - Tools matplotlib + reportlab + openpyxl muessen installiert sein
+    </input_pflicht>
+
+    <output>
+      - PDF-Pfad (im Objektordner)
+      - Excel-Pfad (mit Notizen aktualisiert)
+      - Pflicht-Schritte-Checkliste vor Notartermin (kompakt)
+    </output>
+  </modul_5_export>
 
   <!-- ============================================================ -->
   <!-- EXCEL-HANDOFF                                                 -->
@@ -187,7 +262,7 @@
       Modul 2: RENO-Block (ENERGETISCH, GEMEINSCHAFT, JE_WE, JE_WE_KUECHE, WEG-Aufteilung), BESICHTIGUNG A41 (Modernisierungsstand).
       Modul 3: KALKU C24-C29 (AfA-Korridor, RND-Korridor, Modernisierungspunkte).
       Modul 4 (v2.0): MIETER M6 (Mietspiegel-Mittelwert VOR Sanierung), MIETER P6 (Kappungsgrenze), MIETER A8:K27 (WE-Stamm-Tabelle), MIETER Y8:Y27 (per-WE Mietspiegel-Obergrenze - PFLICHT, sonst R=0), BESICHTIGUNG B33-B36, MIETER U6 (Immometrika-Validation-Notiz aus Step 2.5 NEU), RENO K105 (Mietsubventions-Pauschale aus Step 8 NEU).
-      Modul 5: Verdict im Chat (kein Excel-Output, bewertet Excel-Ergebnisse).
+      Modul 5 (v1.0, ON-REQUEST): PDF-Export Aufteiler_&lt;Stadt&gt;_&lt;Strasse&gt;_&lt;YYYY-MM-DD&gt;.pdf (11 Sektionen + 11 Charts) + Excel-Notizen (Comments auf BESICHTIGUNG!A40/A41, KALKU H-Spalte, RENO!K105, MIETER!U6, VK_CF!C9). KEINE Excel-Werte ueberschreiben - nur Comments und freie Notiz-Zellen.
     </was_module_liefern>
     
     <hinweis>
