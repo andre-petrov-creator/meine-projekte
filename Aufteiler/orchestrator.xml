@@ -1,11 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<claude_prompt name="Aufteiler Orchestrator" version="2.3" language="de">
+<claude_prompt name="Aufteiler Orchestrator" version="2.4" language="de">
 
   <!--
-    SCHLANKER ORCHESTRATOR v2.3
+    SCHLANKER ORCHESTRATOR v2.4
     Liegt als Projektanweisung im Claude-Projekt.
     Module werden bei Bedarf per web_fetch von GitHub geladen.
     Jedes Modul ist autark und liefert eigenen Excel-Transfer-Block.
+
+    GITHUB-REPO:
+    https://github.com/andre-petrov-creator/claude-prompts/tree/main/Aufteiler
+    Direktlinks aller Module + Skills siehe <module_registry/> und <skill_registry/>.
+
+    AENDERUNGEN v2.4 vs v2.3:
+    - Neuer Skill skill_pdf_export.md im Aufteiler-Ordner
+    - Modul 5 v1.1 verweist PFLICHT auf den Skill (web_fetch vor Build)
+    - Skill enthaelt R1-R13 (Word-Wrap, KeepTogether, Spaltenbreiten, Farben,
+      kein Emoji, Hyperlinks, Schriften, Margins, Padding, Zebra)
+    - Skill abgeleitet aus Layout-Problemen Prosperstr. 59 (Spalten-Overflow)
+    - <skill_registry/> neu im Orchestrator (Skills sind webfetchbar wie Module)
+    - User-Reihenfolge-Anpassung in Modul 5 explizit erlaubt
 
     AENDERUNGEN v2.3 vs v2.2:
     - Modul 5 (Verdict-Export PDF) NICHT mehr automatisch in Vollanalyse-Sequenz
@@ -55,7 +68,8 @@
   <!-- MODUL-ROUTING (GitHub raw URLs)                               -->
   <!-- WICHTIG: Pfad ist case-sensitive: "Aufteiler" mit grossem A   -->
   <!-- ============================================================ -->
-  <module_registry base_url="https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/">
+  <module_registry base_url="https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/"
+                   github_browse="https://github.com/andre-petrov-creator/claude-prompts/tree/main/Aufteiler">
     <module id="0" name="Quick-Check"            file="modul_0_quickcheck.xml"/>
     <module id="1" name="Objektbasis"            file="modul_1_objektbasis.xml"/>
     <module id="2" name="Massnahmen"             file="modul_2_massnahmen.xml"/>
@@ -63,6 +77,22 @@
     <module id="4" name="Mietsituation"          file="modul_4_miete.xml"/>
     <module id="5" name="Deal Verdict"           file="modul_5_verdict.xml"/>
   </module_registry>
+
+  <!-- ============================================================ -->
+  <!-- SKILL-REGISTRY (separate Skill-Dateien im selben Repo)        -->
+  <!-- ============================================================ -->
+  <skill_registry base_url="https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/"
+                  github_browse="https://github.com/andre-petrov-creator/claude-prompts/tree/main/Aufteiler">
+    <skill id="pdf_export" name="Aufteiler PDF-Export Design"
+           file="skill_pdf_export.md"
+           used_by="modul_5_verdict.xml">
+      <zweck>
+        Verbindliche Layout-Regeln R1-R13 fuer PDF-Generation.
+        Code-Bausteine fuer Word-Wrap-Tabellen, Verdict-Badges, Footer.
+        Pflicht-Skill: vor jedem PDF-Build per web_fetch laden.
+      </zweck>
+    </skill>
+  </skill_registry>
 
   <!-- ============================================================ -->
   <!-- AUSFUEHRUNGSMODI                                              -->
@@ -202,9 +232,27 @@
       durch - es konsumiert nur die Outputs der Module 0-4 + die befuellte Excel
       und erzeugt:
       1. PDF-Datei: Aufteiler_&lt;Stadt&gt;_&lt;Strasse&gt;_&lt;YYYY-MM-DD&gt;.pdf
-         (11 Sektionen + 11 Charts via matplotlib Visualizing Tool)
+         (Sektionen + Charts via matplotlib)
       2. Excel-Notizen: Comments + freie Notiz-Zellen in Kalkulation_Aufteiler.xlsx
     </prinzip>
+
+    <pflicht_skill>
+      Vor jedem PDF-Build PFLICHT: skill_pdf_export.md per web_fetch laden.
+      URL: https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/skill_pdf_export.md
+      GitHub-Browse: https://github.com/andre-petrov-creator/claude-prompts/blob/main/Aufteiler/skill_pdf_export.md
+      Skill enthaelt:
+      - R1 Word-Wrap (Paragraph statt String in Cells)
+      - R2 KeepTogether (Tabellen nie ueber Seiten splitten)
+      - R3 Spaltenbreiten-Summe = 17 cm
+      - R4 Farbpalette (NAVY/INK/ACCENT/GREEN/YELLOW/ORANGE/RED/GRAY)
+      - R5 Keine Emojis - farbige Status-Cells
+      - R6 URLs als klickbare Paragraph-Links
+      - R7 Schriftgroessen-Tabelle
+      - R8 Margins
+      - R9 PageBreak-Logik (Seiten fuellen, nicht splitten)
+      - R10-R13 Padding/Zebra/Alignment
+      Verstoss gegen Skill-Regeln = PDF nicht ausliefern, neu bauen.
+    </pflicht_skill>
 
     <fast_prompt_aktivierung>
       Aktivierung 1 (User-Trigger):

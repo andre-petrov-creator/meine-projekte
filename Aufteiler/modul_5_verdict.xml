@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<modul name="Verdict-Export" id="5" version="1.0" language="de">
+<modul name="Verdict-Export" id="5" version="1.1" language="de">
 
   <!--
     MODUL 5 - VERDICT-EXPORT (PDF + Excel-Notizen)
@@ -13,6 +13,11 @@
     - ODER: Orchestrator fragt am Ende der Vollanalyse-Sequenz nach
       "Soll die Analyse als PDF exportiert werden?" und User bestaetigt.
 
+    PFLICHT-SKILL:
+    - skill_pdf_export.md (im selben GitHub-Verzeichnis Aufteiler/)
+    - Vor jedem Build: web_fetch des Skills, Regeln R1-R13 anwenden.
+    - Skill regelt Form (Spalten, Farben, Word-Wrap). Modul 5 regelt Inhalt.
+
     Outputs:
     - PDF-Datei: Aufteiler_<Stadt>_<Strasse>_<YYYY-MM-DD>.pdf
     - Excel-Update: Notizen in Kalkulation_Aufteiler_mit_VK_CF.xlsx
@@ -21,6 +26,13 @@
     - Module 0-4 muessen durchgelaufen sein (Outputs in Chat-Kontext)
     - Excel Kalkulation_Aufteiler ist befuellt
     - Wenn nicht: STOPP, User-Hinweis "Erst Module 0-4 ausfuehren".
+
+    AENDERUNGEN v1.1 vs v1.0:
+    - PFLICHT-Verweis auf skill_pdf_export.md fuer Layout-Regeln
+    - Spaltenbreiten-Regel R3 (Sigma colWidths == 17 cm)
+    - Word-Wrap-Regel R1 (Paragraph statt String in Cells)
+    - KeepTogether-Regel R2 (Tabellen nie ueber Seiten splitten)
+    - User-Reihenfolge-Anpassung erlaubt (z.B. To-Dos nach oben, Szenario-Block)
   -->
 
   <identity>
@@ -76,6 +88,19 @@
       <typ>Lokale Datei Kalkulation_Aufteiler_mit_VK_CF.xlsx (befuellt)</typ>
       <enthaelt>VERKAUFSMATRIX!Y26 (Markt-VK), VK_CF!I38 (Cashflow-VK), Renditen.</enthaelt>
     </source>
+    <source name="pdf_design_skill" prio="1" pflicht="ja">
+      <typ>Skill-Datei skill_pdf_export.md im selben GitHub-Verzeichnis</typ>
+      <url>https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/skill_pdf_export.md</url>
+      <enthaelt>
+        Verbindliche Layout-Regeln R1-R13 (Word-Wrap, KeepTogether, Spaltenbreiten,
+        Farbpalette, kein Emoji, Hyperlinks, Schriften, Margins, Padding, Zebra,
+        Zahlen-Alignment, VALIGN). Plus reportlab-Code-Bausteine zum Kopieren.
+      </enthaelt>
+      <regel>
+        Vor jedem PDF-Build PFLICHT: web_fetch dieser Datei und R1-R13 anwenden.
+        Wenn auch nur eine Regel verletzt: PDF nicht ausliefern, neu bauen.
+      </regel>
+    </source>
   </data_sources>
 
   <!-- ============================================================ -->
@@ -89,10 +114,25 @@
         <check>Modul 0-4 Outputs im Chat-Kontext vorhanden?</check>
         <check>Excel-Datei Kalkulation_Aufteiler_*.xlsx befuellt?</check>
         <check>User-Bestaetigung fuer Export erhalten?</check>
+        <check>Skill skill_pdf_export.md per web_fetch geladen? (PFLICHT)</check>
       </checks>
       <stop_logik>
         Wenn nein: STOPP mit konkreter Hinweis-Liste was fehlt.
       </stop_logik>
+    </step>
+
+    <step n="0b" name="skill_laden">
+      <task>PFLICHT: skill_pdf_export.md via web_fetch laden.</task>
+      <url>https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/skill_pdf_export.md</url>
+      <output>
+        Layout-Regeln R1-R13 + Code-Bausteine (Word-Wrap-Tabelle, Verdict-Badge,
+        KeepTogether-Section, Footer, Charts).
+      </output>
+      <regel>
+        Skill-Inhalt direkt umsetzen. Nicht reformulieren oder eigene Regeln erfinden.
+        Wenn der User eine Reihenfolge der Sektionen wuenscht (z.B. To-Dos nach oben,
+        Szenario-Block einfuegen): Reihenfolge anpassen, R1-R13 unveraendert anwenden.
+      </regel>
     </step>
 
     <step n="1" name="datensammlung">
@@ -166,7 +206,23 @@
     </step>
 
     <step n="5" name="pdf_generieren">
-      <task>PDF mit 11 Sektionen + 11 Charts mit reportlab.</task>
+      <task>PDF mit 11 Sektionen + 11 Charts mit reportlab. PFLICHT: Skill-Regeln R1-R13 aus skill_pdf_export.md anwenden.</task>
+      <pflicht_skill_regeln>
+        Vor doc.build() Self-Check (siehe skill_pdf_export.md Abschnitt 5):
+        R1 Word-Wrap (Paragraph statt String in Cells > 30 Zeichen)
+        R2 KeepTogether (Tabellen nie ueber Seiten splitten)
+        R3 Spaltenbreiten-Summe == 17 cm (A4 - 4 cm Margins)
+        R4 Farbpalette aus Skill-Datei
+        R5 Keine Emojis - Status mit farbiger Cell-Hintergrund
+        R6 URLs als klickbare Paragraph-Links
+        R7 Schriftgroessen aus Skill-Tabelle
+        R8 Margins 2cm/2cm/1.8cm/1.8cm
+        R9 PageBreak nur bei zu grossen Bloecken oder Sektionswechsel
+        R10 Tabellen-Padding mind. 4
+        R11 Zebra-Streifen ab 4 Zeilen
+        R12 Numerische Spalten rechts
+        R13 VALIGN TOP bei Word-Wrap, MIDDLE bei Kurztexten
+      </pflicht_skill_regeln>
       <pdf_struktur>
         <sektion n="cover">Titel + Adresse + Hebel-Kaskade-Chart + GO-Verdict-Box</sektion>
         <sektion n="1">Stammdaten</sektion>
@@ -281,6 +337,16 @@
     <rule priority="HIGHEST" name="ON_REQUEST_ONLY">
       Modul 5 NIE automatisch in Vollanalyse-Sequenz.
       Trigger: User-Anfrage ODER explizite Bestaetigung nach Orchestrator-Frage.
+    </rule>
+    <rule priority="HIGHEST" name="SKILL_PFLICHT">
+      Vor jedem PDF-Build: skill_pdf_export.md per web_fetch laden und R1-R13 anwenden.
+      URL: https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/skill_pdf_export.md
+      Skill regelt Form (Layout). Modul 5 regelt Inhalt (Sektionen, Daten).
+    </rule>
+    <rule priority="HIGHEST" name="USER_REIHENFOLGE">
+      Wenn der User in der Anfrage eine bestimmte Sektion-Reihenfolge wuenscht
+      (z.B. "Aufgaben To-Dos ganz oben", "Modernisierungsliste danach", "Szenario-Block einfuegen"):
+      Reihenfolge anpassen. Layout-Regeln R1-R13 bleiben unveraendert.
     </rule>
     <rule>Modul 5 fuehrt KEINE Berechnungen durch. Konsumiert nur Outputs Module 0-4.</rule>
     <rule>Modul 5 ueberschreibt NIE Excel-Werte. Nur Comments + freie Notiz-Zellen.</rule>
