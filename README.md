@@ -14,6 +14,8 @@ GitHub-Spiegel zur Sicherung: `github.com/andre-petrov-creator/meine-projekte`
 |---|---|---|
 | `Immobilien/Aufteiler/` | MFH-Aufteiler-Skill (Module 0–5, Orchestrator, Excel-Template) | aktiv |
 | `Immobilien/Unterlagen-Check-Ankauf/` | MFH-Due-Diligence-Skill (Junction → `~/.claude/skills/unterlagen-check-ankauf`) | aktiv |
+| `skills/claude-code-blueprint/` | Skill für Claude-Code-Projekt-Setup (Junction → `~/.claude/skills/claude-code-blueprint`) | aktiv |
+| `commands/` | Custom Slash-Commands (Junction → `~/.claude/commands`) | aktiv |
 | `automatisierung-aquise/` | Python-Pipeline: Akquise-Mails → PDF/Adresse → Objekt-Ordner | aktiv |
 | `design/` | PDF-Templates (React-PDF) | aktiv |
 
@@ -47,3 +49,4 @@ git push
 
 - **2026-04-30**: Umzug von `c:\Users\andre\repos\claude-prompts\` → `C:\meine-projekte\`. `automatisierung-aquise/` aus `~/.claude/projects/Automatisierung, Mail, Exposé, Ordner/` integriert.
 - **2026-04-30**: `unterlagen-check-ankauf` aus `~/.claude/skills/` ins Mono-Repo migriert (aktive 6-Schritte-Version inkl. `tools/`). Junction-Pattern eingeführt — Master liegt jetzt im Mono-Repo, Skill-Loader nutzt Junction.
+- **2026-04-30**: `claude-code-blueprint` (Skill) und `guides-sync` (Slash-Command) ebenfalls ins Mono-Repo migriert. `~/.claude/commands` ist jetzt ebenfalls Junction. Damit liegen alle Claude-Code-Erweiterungen (Skills + Commands) zentral im Mono-Repo + GitHub.
