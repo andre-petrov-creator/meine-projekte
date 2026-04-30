@@ -10,7 +10,7 @@ Pro Dokumenttyp eine Datei mit der **Prüflogik** für den Subagent. Wird in [Sc
 
 | Nr | Dokumenttyp | Protokoll |
 |---|---|---|
-| 01 | Grundbuchauszug | [`01-grundbuch.md`](01-grundbuch.md) |
+| 01 | Grundbuchauszug | [`01-grundbuch.md`](01-grundbuch.md) ✅ befüllt |
 | 02 | Flurkarte / Liegenschaftskarte | [`02-flurkarte.md`](02-flurkarte.md) |
 | 03 | Baulastenverzeichnis | [`03-baulasten.md`](03-baulasten.md) |
 | 04 | Altlastenkataster | [`04-altlasten.md`](04-altlasten.md) |
@@ -33,7 +33,8 @@ Pro Dokumenttyp eine Datei mit der **Prüflogik** für den Subagent. Wird in [Sc
 
 ## Stand
 
-Aktuell sind alle 20 Protokolle als **Skeleton** angelegt — Sektionen vorhanden, Inhalt mit `TODO`. Subagents prüfen bis zur inhaltlichen Befüllung primär aus LLM-Bauchwissen. Reihenfolge der Befüllung pflegt der User nach Priorität (z.B. zuerst Grundbuch + Mietvertrag, weil dealkritisch).
+- **Befüllt (1):** Grundbuchauszug
+- **Skeleton (19):** alle übrigen — Sektionen vorhanden, Inhalt `TODO`. Subagents für diese Dokumenttypen prüfen bis zur inhaltlichen Befüllung primär aus LLM-Bauchwissen. Reihenfolge der Befüllung pflegt der User nach Priorität.
 
 ## Pflege
 
