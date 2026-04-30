@@ -90,7 +90,7 @@
     </source>
     <source name="pdf_design_skill" prio="1" pflicht="ja">
       <typ>Skill-Datei skill_pdf_export.md im selben GitHub-Verzeichnis</typ>
-      <url>https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/skill_pdf_export.md</url>
+      <url>https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/skill_pdf_export.md</url>
       <enthaelt>
         Verbindliche Layout-Regeln R1-R13 (Word-Wrap, KeepTogether, Spaltenbreiten,
         Farbpalette, kein Emoji, Hyperlinks, Schriften, Margins, Padding, Zebra,
@@ -123,7 +123,7 @@
 
     <step n="0b" name="skill_laden">
       <task>PFLICHT: skill_pdf_export.md via web_fetch laden.</task>
-      <url>https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/skill_pdf_export.md</url>
+      <url>https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/skill_pdf_export.md</url>
       <output>
         Layout-Regeln R1-R13 + Code-Bausteine (Word-Wrap-Tabelle, Verdict-Badge,
         KeepTogether-Section, Footer, Charts).
@@ -340,7 +340,7 @@
     </rule>
     <rule priority="HIGHEST" name="SKILL_PFLICHT">
       Vor jedem PDF-Build: skill_pdf_export.md per web_fetch laden und R1-R13 anwenden.
-      URL: https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/skill_pdf_export.md
+      URL: https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/skill_pdf_export.md
       Skill regelt Form (Layout). Modul 5 regelt Inhalt (Sektionen, Daten).
     </rule>
     <rule priority="HIGHEST" name="USER_REIHENFOLGE">

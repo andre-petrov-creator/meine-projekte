@@ -16,8 +16,8 @@ In der Project-Instruction:
 ```
 PDF-OUTPUT STANDARD:
 Wenn ein PDF erstellt werden soll:
-1. git clone https://github.com/andre-petrov-creator/claude-prompts /home/claude/claude-prompts
-2. Lese /home/claude/claude-prompts/design/pdf/SKILL.md
+1. git clone https://github.com/andre-petrov-creator/meine-projekte /home/claude/meine-projekte
+2. Lese /home/claude/meine-projekte/design/pdf/SKILL.md
 3. Folge dem Setup, nutze template.tsx als Basis
 4. Inhalte 1:1 vom Input übernehmen, nichts dazu erfinden
 ```

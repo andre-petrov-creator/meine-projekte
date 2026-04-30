@@ -1,0 +1,25 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDEs
+.idea/
+.vscode/
+
+# Projekt-Daten
+data/*
+!data/.gitkeep
+logs/*
+!logs/.gitkeep
+*.db
+*.sqlite
+
+# Temp
+*.tmp
+*.bak

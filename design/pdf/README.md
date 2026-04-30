@@ -22,7 +22,7 @@ curl -sL "${URLS[3]}" -o fonts/IBMPlexSans-SemiBold.ttf
 curl -sL "${URLS[4]}" -o fonts/IBMPlexSans-Bold.ttf
 
 # 3. Template kopieren
-cp /home/claude/claude-prompts/design/pdf/template.tsx document.tsx
+cp /home/claude/meine-projekte/design/pdf/template.tsx document.tsx
 
 # 4. Daten-Block anpassen, dann Render
 npx tsx document.tsx

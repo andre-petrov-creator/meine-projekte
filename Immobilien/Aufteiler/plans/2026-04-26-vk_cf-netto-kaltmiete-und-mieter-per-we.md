@@ -9,7 +9,7 @@
 - **MIETER** bekommt neue Eingangs-Spalte `Y` ("Spannenobergrenze €/m² (per WE)"). `R`-Formel wird radikal vereinfacht zu `=Y*F`. `T`-Formel bleibt `=R/F`. `N`-Formel ersetzt jeden `$M$6`-Bezug durch den Durchschnitt `(Y+$M$6)/2`.
 - **VK_CF** Spalten G/H/I/J werden umbenannt und semantisch umgebaut: H zeigt jetzt €/m² (statt Bewirt-reduzierte €/Mo), I baut Bewirt inline ein. M und N werden synchron angepasst (H durch `G*(1-$C$8)` ersetzt).
 - **orchestrator.xml** Excel-Handoff-Section wird auf neue Spalten-/Formel-Realität aktualisiert.
-- **GitHub** Push: `modul_4_miete.xml` und `orchestrator.xml` nach `andre-petrov-creator/claude-prompts/Aufteiler/`.
+- **GitHub** Push: `modul_4_miete.xml` und `orchestrator.xml` nach `andre-petrov-creator/meine-projekte/Aufteiler/`.
 
 **Tech Stack:** XML (Notepad-edits), Excel xlsx (openpyxl Python), Git (gh CLI).
 
@@ -26,7 +26,7 @@
 | `Kalkulation_Aufteiler_mit_VK_CF.xlsx` (Sheet `MIETER`) | Y-Spalte (Header + leere Eingangs-Zellen). R-Formeln Z8-Z27 vereinfachen. N-Formeln Z8-Z27 mit Avg-Cap umbauen. T bleibt. |
 | `Kalkulation_Aufteiler_mit_VK_CF.xlsx` (Sheet `VK_CF`) | C8-Label. Formel-Box E6+E8. Headers G/H/I/J Z17. Formeln G/H/I/J/M/N Z18-Z37. SUMME Z38 H. |
 | `orchestrator.xml` | Z101, Z151, Z158, Z161, Z168 — alle Bezüge auf alte VK-Formel und R-Definition aktualisieren. |
-| GitHub Repo `andre-petrov-creator/claude-prompts` | Push `modul_4_miete.xml` + `orchestrator.xml` nach `Aufteiler/`. |
+| GitHub Repo `andre-petrov-creator/meine-projekte` | Push `modul_4_miete.xml` + `orchestrator.xml` nach `Aufteiler/`. |
 
 ---
 
@@ -802,12 +802,12 @@ Expected: Heutiges Datum.
 
 ### Task 24: GitHub Push der XML-Module
 
-**Files:** GitHub Repo `andre-petrov-creator/claude-prompts`
+**Files:** GitHub Repo `andre-petrov-creator/meine-projekte`
 
 - [ ] **Step 1: Status prüfen**
 
 ```bash
-gh repo view andre-petrov-creator/claude-prompts --json defaultBranchRef
+gh repo view andre-petrov-creator/meine-projekte --json defaultBranchRef
 ```
 
 Expected: `defaultBranchRef.name = "main"`
@@ -815,8 +815,8 @@ Expected: `defaultBranchRef.name = "main"`
 - [ ] **Step 2: Lokales Klon-Verzeichnis lokalisieren** (oder neu klonen)
 
 ```bash
-gh repo clone andre-petrov-creator/claude-prompts /tmp/claude-prompts
-ls /tmp/claude-prompts/Aufteiler/
+gh repo clone andre-petrov-creator/meine-projekte /tmp/meine-projekte
+ls /tmp/meine-projekte/Aufteiler/
 ```
 
 Expected: Bisherige Modul-XMLs sichtbar.
@@ -824,14 +824,14 @@ Expected: Bisherige Modul-XMLs sichtbar.
 - [ ] **Step 3: Geänderte Dateien kopieren**
 
 ```bash
-cp "c:/Users/andre/OneDrive - APPV Personalvermittlung/Immobilien/001_AQUISE/Objekte/0_Aufteiler Skill/modul_4_miete.xml" /tmp/claude-prompts/Aufteiler/
-cp "c:/Users/andre/OneDrive - APPV Personalvermittlung/Immobilien/001_AQUISE/Objekte/0_Aufteiler Skill/orchestrator.xml" /tmp/claude-prompts/Aufteiler/
+cp "c:/Users/andre/OneDrive - APPV Personalvermittlung/Immobilien/001_AQUISE/Objekte/0_Aufteiler Skill/modul_4_miete.xml" /tmp/meine-projekte/Aufteiler/
+cp "c:/Users/andre/OneDrive - APPV Personalvermittlung/Immobilien/001_AQUISE/Objekte/0_Aufteiler Skill/orchestrator.xml" /tmp/meine-projekte/Aufteiler/
 ```
 
 - [ ] **Step 4: Commit + Push**
 
 ```bash
-cd /tmp/claude-prompts
+cd /tmp/meine-projekte
 git add Aufteiler/modul_4_miete.xml Aufteiler/orchestrator.xml
 git commit -m "$(cat <<'EOF'
 Aufteiler: per-WE Spannenobergrenze + VK_CF Nettokaltmiete-Anzeige
@@ -847,7 +847,7 @@ git push origin main
 - [ ] **Step 5: Verifikation Live-URL**
 
 ```bash
-curl -s "https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/modul_4_miete.xml" | grep -c "Y8:Y27"
+curl -s "https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/modul_4_miete.xml" | grep -c "Y8:Y27"
 ```
 
 Expected: ≥ 2 (matches lokalen grep aus Task 2).

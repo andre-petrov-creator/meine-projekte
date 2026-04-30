@@ -1,0 +1,39 @@
+# Secrets — niemals committen
+.env
+.env.local
+*.key
+*.pem
+secrets/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+build/
+
+# IDEs / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs / Temp
+*.log
+*.tmp
+*.bak
+logs/*.log
+
+# Lokale Daten
+*.db
+*.sqlite
+*.sqlite3

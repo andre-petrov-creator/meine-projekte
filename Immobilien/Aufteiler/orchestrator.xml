@@ -8,7 +8,7 @@
     Jedes Modul ist autark und liefert eigenen Excel-Transfer-Block.
 
     GITHUB-REPO:
-    https://github.com/andre-petrov-creator/claude-prompts/tree/main/Aufteiler
+    https://github.com/andre-petrov-creator/meine-projekte/tree/main/Aufteiler
     Direktlinks aller Module + Skills siehe <module_registry/> und <skill_registry/>.
 
     AENDERUNGEN v2.4 vs v2.3:
@@ -68,8 +68,8 @@
   <!-- MODUL-ROUTING (GitHub raw URLs)                               -->
   <!-- WICHTIG: Pfad ist case-sensitive: "Aufteiler" mit grossem A   -->
   <!-- ============================================================ -->
-  <module_registry base_url="https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/"
-                   github_browse="https://github.com/andre-petrov-creator/claude-prompts/tree/main/Aufteiler">
+  <module_registry base_url="https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/"
+                   github_browse="https://github.com/andre-petrov-creator/meine-projekte/tree/main/Aufteiler">
     <module id="0" name="Quick-Check"            file="modul_0_quickcheck.xml"/>
     <module id="1" name="Objektbasis"            file="modul_1_objektbasis.xml"/>
     <module id="2" name="Massnahmen"             file="modul_2_massnahmen.xml"/>
@@ -81,8 +81,8 @@
   <!-- ============================================================ -->
   <!-- SKILL-REGISTRY (separate Skill-Dateien im selben Repo)        -->
   <!-- ============================================================ -->
-  <skill_registry base_url="https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/"
-                  github_browse="https://github.com/andre-petrov-creator/claude-prompts/tree/main/Aufteiler">
+  <skill_registry base_url="https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/"
+                  github_browse="https://github.com/andre-petrov-creator/meine-projekte/tree/main/Aufteiler">
     <skill id="pdf_export" name="Aufteiler PDF-Export Design"
            file="skill_pdf_export.md"
            used_by="modul_5_verdict.xml">
@@ -238,8 +238,8 @@
 
     <pflicht_skill>
       Vor jedem PDF-Build PFLICHT: skill_pdf_export.md per web_fetch laden.
-      URL: https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/skill_pdf_export.md
-      GitHub-Browse: https://github.com/andre-petrov-creator/claude-prompts/blob/main/Aufteiler/skill_pdf_export.md
+      URL: https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/skill_pdf_export.md
+      GitHub-Browse: https://github.com/andre-petrov-creator/meine-projekte/blob/main/Aufteiler/skill_pdf_export.md
       Skill enthaelt:
       - R1 Word-Wrap (Paragraph statt String in Cells)
       - R2 KeepTogether (Tabellen nie ueber Seiten splitten)

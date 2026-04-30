@@ -7,8 +7,8 @@
 
 ## Quellen der Wahrheit (alles auf GitHub gepusht)
 
-- **`https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/modul_4_miete.xml`** ← Modul 4 v1.3
-- **`https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/orchestrator.xml`** ← Orchestrator v2.2
+- **`https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/modul_4_miete.xml`** ← Modul 4 v1.3
+- **`https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/orchestrator.xml`** ← Orchestrator v2.2
 
 Lokal gibt es **keine** XML-Kopie mehr (bewusst gelöscht zur Vermeidung von Konflikten).
 
@@ -141,10 +141,10 @@ Lies erst diese drei Quellen als Kontext, BEVOR du irgendwas planst:
    <hier den Inhalt von PLAN_Modul4_Ueberarbeitung.md einfügen>
 
 2. Aktueller Modul-4 Stand (v1.3) — fetch:
-   https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/modul_4_miete.xml
+   https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/modul_4_miete.xml
 
 3. Aktueller Orchestrator (v2.2) — fetch:
-   https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Aufteiler/orchestrator.xml
+   https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Aufteiler/orchestrator.xml
 
 4. Briefing-Dokument (DIESE Datei) als lokaler Kontext:
    c:\Users\andre\OneDrive - APPV Personalvermittlung\Immobilien\001_AQUISE\Objekte\0_Aufteiler Skill\plans\2026-04-26-modul4-aktueller-stand-fuer-neuen-plan.md

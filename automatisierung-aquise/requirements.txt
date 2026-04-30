@@ -1,0 +1,19 @@
+# Akquise-Pipeline — Runtime Dependencies
+
+# Email
+imapclient>=3.0.1
+
+# PDF
+pypdf>=5.0.0
+
+# HTTP
+requests>=2.32.0
+
+# Konfiguration
+python-dotenv>=1.0.1
+
+# LLM-Fallback (Adress-Extraktion)
+anthropic>=0.40.0
+
+# --- Dev ---
+pytest>=8.0.0
