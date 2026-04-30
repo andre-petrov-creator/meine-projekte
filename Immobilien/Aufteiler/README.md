@@ -2,6 +2,16 @@
 
 Dieser Ordner enthält das modulare XML-Workflow-System für die MFH-Aufteiler-Analyse, plus Skills (Form-Regeln). Alles ist webfetchbar via raw.githubusercontent.com.
 
+## Einstieg für Überarbeitungen
+
+Vor jeder Änderung an Modulen, Skills oder dem Excel-Template lesen:
+
+1. [`CLAUDE.md`](CLAUDE.md) — Steuerungsdatei: Pflicht-Reads vor / Pflicht-Writes nach jeder Aufgabe
+2. [`DEVELOPMENT_GUIDELINES.md`](DEVELOPMENT_GUIDELINES.md) — Konventionen, Format-Regeln, Versionierung
+3. [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) — Big Picture
+4. [`docs/README.md`](docs/README.md) — Index der Komponenten-Doku
+5. [`plans/`](plans/) — letzte Überarbeitungs-Plans (Vorlage: [`docs/UEBERARBEITUNGS_TEMPLATE.md`](docs/UEBERARBEITUNGS_TEMPLATE.md))
+
 ## Module (Inhalt / Berechnungen)
 
 | ID | Datei | Zweck |
@@ -41,7 +51,7 @@ Zwischen jedem Modul wartet der Orchestrator auf Freigabe (`go`, `weiter`, `ja`,
 
 Direkt-Download (Binary, IMMER von GitHub ziehen):
 ```
-curl -o Kalkulation_<Strassenkurz>.xlsx https://raw.githubusercontent.com/andre-petrov-creator/claude-prompts/main/Immobilien/Aufteiler/template/Kalkulation_Aufteiler_mit_VK_CF.xlsx
+curl -o Kalkulation_<Strassenkurz>.xlsx https://raw.githubusercontent.com/andre-petrov-creator/meine-projekte/main/Immobilien/Aufteiler/template/Kalkulation_Aufteiler_mit_VK_CF.xlsx
 ```
 
 Pro Objekt-Ordner kopieren als `Kalkulation_<Strassenkurz>.xlsx`.
