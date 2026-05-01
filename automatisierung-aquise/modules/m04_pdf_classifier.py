@@ -1,11 +1,11 @@
-"""m04 — PDF Classifier.
+"""m04 — File Classifier.
 
-Klassifiziert ein PDF anhand seines Filenames (Heuristik).
+Klassifiziert eine Datei (PDF oder Bild) anhand ihres Filenames (Heuristik).
 Regeln aus `config.PDF_CLASSIFIER_RULES` (Reihenfolge = Priorität).
 
 Public API:
-    classify(pdf_path) -> {"typ": str, "confidence": float}
-    run(pdf_path) -> dict   (Pipeline-Konvention)
+    classify(path) -> {"typ": str, "confidence": float}
+    run(path) -> dict   (Pipeline-Konvention)
 
 Mögliche Typen:
     expose, mieterliste, energieausweis, modernisierung, sonstiges

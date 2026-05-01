@@ -169,3 +169,21 @@ def test_run_alias():
 def test_run_ohne_argument_raises():
     with pytest.raises(ValueError, match="pdf_path"):
         classifier.run()
+
+
+# ---------------------------------------------------------------------------
+# Bilder
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "filename,expected",
+    [
+        ("Exposé-Foto.jpg", "expose"),
+        ("Mieterliste.png", "mieterliste"),
+        ("expose-scan.heic", "expose"),
+        ("logo.jpg", "sonstiges"),
+    ],
+)
+def test_klassifiziert_bilder_per_filename(filename, expected):
+    assert classifier.classify(filename)["typ"] == expected

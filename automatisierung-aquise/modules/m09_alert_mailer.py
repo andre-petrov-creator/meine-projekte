@@ -11,6 +11,7 @@ Kein Retry: schlägt der Alert selbst fehl, wird nur geloggt
 Public API:
     send_exception_alert(message_id, mail_subject, mail_von, exc, traceback_str)
     send_anomaly_alert(message_id, mail_subject, mail_von, reason, details)
+    send_no_content_alert(message_id, mail_subject, mail_von, reason, details)
 """
 from __future__ import annotations
 
@@ -122,6 +123,51 @@ def _project_only_traceback(tb_obj) -> str:
         if frame.line:
             lines.append(f"      {frame.line.strip()}")
     return "\n".join(lines)
+
+
+def send_no_content_alert(
+    message_id: str,
+    mail_subject: str,
+    mail_von: str,
+    reason: str,
+    details: dict | None = None,
+) -> None:
+    """Hard-Fail-Alert: Mail wurde verarbeitet, aber NICHTS Verwertbares extrahierbar
+    (kein PDF, kein Bild, keine Adresse). Konsistent zur Grundannahme „jede Mail
+    enthält Exposé-Inhalt": wenn die Pipeline nichts findet, ist das ein Bug oder
+    Edge-Case, der menschliche Aufmerksamkeit braucht."""
+    subject = f"❌ Mail-Verarbeitung — kein Inhalt — {_truncate(mail_subject, 60)}"
+
+    body_lines = [
+        "❌ KEIN INHALT extrahierbar",
+        "",
+        f"Mail:  {mail_subject}",
+        f"Von:   {mail_von}",
+        f"Zeit:  {datetime.now():%Y-%m-%d %H:%M:%S}",
+        "",
+        "Was passiert ist:",
+        "✓ Mail wurde empfangen und gescannt",
+        f"✗ {reason}",
+        "✓ Mail wurde in der State-DB als 'error' markiert (kein automatischer Retry)",
+        "",
+        "Was du tun musst:",
+        "1. Mail manuell im Posteingang ansehen — was ist drin?",
+        "2. Falls Bild/PDF doch existiert: Pipeline-Bug — Code prüfen (m02 Parser)",
+        f"3. Mail neu durchlassen:  python reset_mail.py {message_id}",
+        "4. Falls die Mail tatsächlich Müll ist: Filter (FILTER_FROM_ADDRESS) prüfen",
+        "",
+        "─" * 60,
+        "",
+        "=== DETAILS ===",
+        "",
+    ]
+    if details:
+        for k, v in details.items():
+            body_lines.append(f"{k}:")
+            body_lines.append(f"  {v}")
+            body_lines.append("")
+
+    _send("\n".join(body_lines), subject)
 
 
 def send_anomaly_alert(

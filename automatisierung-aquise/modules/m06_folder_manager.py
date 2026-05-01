@@ -9,7 +9,8 @@ Public API:
 
 Eingabe `files`:
     [{"path": Path | str, "typ": str}, ...]
-    typ ∈ {"expose", "mieterliste", "energieausweis", "modernisierung", "sonstiges"}
+    typ ∈ {"expose", "mieterliste", "energieausweis", "modernisierung",
+           "expose_image", "mieterliste_image", "sonstiges"}
 
 Eingabe `meta`:
     {"message_id": str, "von": str, "subject": str, "timestamp": str | None}

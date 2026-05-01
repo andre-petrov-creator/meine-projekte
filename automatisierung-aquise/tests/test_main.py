@@ -235,6 +235,33 @@ def test_e2e_mail_mit_link_und_anhang(pipeline_env, monkeypatch):
     assert "extra.pdf" in pdfs
 
 
+def test_e2e_hard_fail_bei_leerer_mail(pipeline_env, monkeypatch):
+    """Mail ohne PDFs, ohne Bilder, ohne Adresse → Alert + state=error, kein Folder."""
+    sent_alerts = []
+
+    def fake_no_content_alert(message_id, mail_subject, mail_von, reason, details=None):
+        sent_alerts.append({"id": message_id, "reason": reason})
+
+    monkeypatch.setattr(
+        "modules.m09_alert_mailer.send_no_content_alert",
+        fake_no_content_alert,
+    )
+
+    raw = _build_akquise_mail(
+        message_id="<empty@x>",
+        subject="Re: noch nichts",
+        body="Hier ist nichts brauchbares drin.",
+        pdfs=None,
+    )
+    main.process_mail(raw)
+
+    folders = list(pipeline_env["base"].iterdir())
+    assert folders == []  # kein Folder bei Hard-Fail
+    assert m07_state_store.get_status("empty@x") == "error"
+    assert len(sent_alerts) == 1
+    assert sent_alerts[0]["id"] == "empty@x"
+
+
 def test_e2e_meta_json_inhalt(pipeline_env):
     import json
 

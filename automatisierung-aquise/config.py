@@ -80,6 +80,18 @@ PDF_CLASSIFIER_RULES: list[tuple[str, str]] = [
     (r"modern|sanierung|renovierung", "modernisierung"),
 ]
 
+# --- Bild-Verarbeitung (m02 + m02b Vision) ---
+IMAGE_EXTENSIONS = (
+    ".jpg", ".jpeg", ".png", ".heic", ".heif", ".webp", ".tiff", ".tif", ".gif",
+)
+IMAGE_MAX_DIMENSION = 1568          # Anthropic Vision-Empfehlung (lange Kante)
+IMAGE_JPG_QUALITY = 85
+IMAGE_MAX_BYTES = 5 * 1024 * 1024   # Anthropic API-Limit pro Bild
+PDF_RENDER_DPI = 150                # Bild-PDF → JPG (PyMuPDF)
+PDF_RENDER_MAX_PAGES = 5            # Cap für gescannte Exposés
+PDF_TEXT_MIN_CHARS = 200            # < dieser Schwelle = Bild-PDF (Render-Pfad)
+TRIAGE_MAX_IMAGES = 5               # Token-Cap pro Triage-Request
+
 # --- Adress-Extraktion ---
 ADDRESS_OBJEKT_TRIGGER = ["Lage", "Objekt", "Anschrift", "Standort", "Adresse"]
 ADDRESS_MAKLER_TRIGGER = ["Makler", "Anbieter", "Kontakt", "Telefon", "@", "Tel."]
@@ -91,4 +103,6 @@ CLASSIFIED_FILENAMES: dict[str, str] = {
     "mieterliste": "Mieterliste.pdf",
     "energieausweis": "Energieausweis.pdf",
     "modernisierung": "Modernisierung.pdf",
+    "expose_image": "Exposé.jpg",
+    "mieterliste_image": "Mieterliste.jpg",
 }

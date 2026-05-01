@@ -69,6 +69,7 @@ def test_anhang_und_link_korrekt_geparst():
     assert result["links"][0] == "https://makler.de/expose-12345"
     assert result["anhaenge"][0].name == "expose.pdf"
     assert result["anhaenge"][0].read_bytes() == b"%PDF-1.4 fake content"
+    assert result["bilder"] == []
 
 
 def test_nur_anhang_keine_links():
@@ -178,7 +179,8 @@ def test_filename_mit_pfadgefaehrlichen_zeichen():
     assert ":" not in saved.name
 
 
-def test_nicht_pdf_wird_ignoriert():
+def test_nicht_pdf_landet_nicht_in_anhaenge():
+    """Bilder werden separat in 'bilder' geführt — nicht in 'anhaenge'."""
     msg = EmailMessage()
     msg["Message-ID"] = "<x@y>"
     msg["From"] = "a@b"
@@ -186,6 +188,106 @@ def test_nicht_pdf_wird_ignoriert():
     msg.set_content("foo")
     msg.add_attachment(b"PNG-DATA", maintype="image", subtype="png", filename="bild.png")
     result = parser.parse(msg.as_bytes())
+    assert result["anhaenge"] == []  # Kein PDF-Anhang
+    # bilder kann leer sein (PNG-DATA ist kein gültiges PNG, Pillow scheitert)
+    # — Wichtig: kein Crash, anhaenge bleibt sauber
+    assert "bilder" in result
+
+
+# ---------------------------------------------------------------------------
+# Bilder (Anhänge + Inline + EXIF + Bild-PDF)
+# ---------------------------------------------------------------------------
+
+
+def _make_jpg_bytes(size: tuple[int, int] = (100, 80), color=(200, 100, 50)) -> bytes:
+    """Erzeugt ein gültiges Mini-JPG via Pillow."""
+    pytest.importorskip("PIL")
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", size, color).save(buf, format="JPEG", quality=80)
+    return buf.getvalue()
+
+
+def _make_png_bytes(size: tuple[int, int] = (100, 80)) -> bytes:
+    pytest.importorskip("PIL")
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", size, (50, 200, 100)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def test_jpg_anhang_wird_extrahiert_und_normalisiert():
+    pytest.importorskip("PIL")
+    msg = EmailMessage()
+    msg["Message-ID"] = "<jpg-test@x>"
+    msg["From"] = "a@b"
+    msg["Subject"] = "Bild-Exposé"
+    msg.set_content("siehe Bild")
+    msg.add_attachment(
+        _make_jpg_bytes(),
+        maintype="image",
+        subtype="jpeg",
+        filename="expose-foto.jpg",
+    )
+    result = parser.parse(msg.as_bytes())
+    assert len(result["bilder"]) == 1
+    saved = result["bilder"][0]
+    assert saved.suffix.lower() == ".jpg"
+    assert saved.exists()
+    assert saved.stat().st_size > 0
+
+
+def test_png_anhang_wird_zu_jpg_konvertiert():
+    pytest.importorskip("PIL")
+    msg = EmailMessage()
+    msg["Message-ID"] = "<png-test@x>"
+    msg["From"] = "a@b"
+    msg["Subject"] = "x"
+    msg.set_content("x")
+    msg.add_attachment(
+        _make_png_bytes(),
+        maintype="image",
+        subtype="png",
+        filename="lageplan.png",
+    )
+    result = parser.parse(msg.as_bytes())
+    assert len(result["bilder"]) == 1
+    assert result["bilder"][0].suffix.lower() == ".jpg"
+
+
+def test_grosses_bild_wird_skaliert():
+    pytest.importorskip("PIL")
+    from PIL import Image
+
+    huge = _make_jpg_bytes(size=(4000, 3000))
+    msg = EmailMessage()
+    msg["Message-ID"] = "<huge@x>"
+    msg["From"] = "a@b"
+    msg["Subject"] = "x"
+    msg.set_content("x")
+    msg.add_attachment(huge, maintype="image", subtype="jpeg", filename="huge.jpg")
+    result = parser.parse(msg.as_bytes())
+    assert len(result["bilder"]) == 1
+    with Image.open(result["bilder"][0]) as out:
+        longest = max(out.size)
+    assert longest <= config.IMAGE_MAX_DIMENSION
+
+
+def test_kaputtes_bild_wird_uebersprungen():
+    msg = EmailMessage()
+    msg["Message-ID"] = "<broken@x>"
+    msg["From"] = "a@b"
+    msg["Subject"] = "x"
+    msg.set_content("x")
+    msg.add_attachment(b"NOT_A_REAL_IMAGE", maintype="image", subtype="jpeg", filename="kaputt.jpg")
+    result = parser.parse(msg.as_bytes())
+    assert result["bilder"] == []  # kein Crash, einfach ignoriert
     assert result["anhaenge"] == []
 
 
