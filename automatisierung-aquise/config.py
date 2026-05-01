@@ -47,8 +47,10 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 TEMP_DIR = DATA_DIR / "temp"
 STATE_DB_PATH = DATA_DIR / "state.db"
 
-# --- Anthropic API (Fallback Adress-Extraktion) ---
+# --- Anthropic API ---
 ANTHROPIC_API_KEY = _optional("ANTHROPIC_API_KEY")
+# Sonnet 4.6 für Mail-Triage (m02b): klassifiziert Mail + extrahiert Adresse + filtert Links
+ANTHROPIC_MODEL_TRIAGE = _optional("ANTHROPIC_MODEL_TRIAGE", "claude-sonnet-4-6")
 
 # --- Logging ---
 LOG_LEVEL = _optional("LOG_LEVEL", "INFO")

@@ -47,6 +47,7 @@ def parse(raw_mail: bytes) -> dict:
     temp_dir = config.TEMP_DIR / _sanitize_for_path(message_id)
     anhaenge = _extract_pdf_attachments(msg, temp_dir)
     links = _extract_links(msg)
+    body_plain = _extract_body_text(msg)
 
     log.info(
         "Mail geparst: id=%s, von=%s, %d Anhang/Anhänge, %d Link(s)",
@@ -62,6 +63,7 @@ def parse(raw_mail: bytes) -> dict:
         "von": von,
         "anhaenge": anhaenge,
         "links": links,
+        "body_plain": body_plain,
     }
 
 
@@ -167,6 +169,37 @@ def _unique_path(path: Path) -> Path:
         counter += 1
 
 
+def _extract_body_text(msg: Message, max_len: int = 8000) -> str:
+    """Liefert den Plain-Text-Body (Fallback HTML, von Tags bereinigt)."""
+    for part in msg.walk():
+        if part.is_multipart():
+            continue
+        if part.get_content_type() == "text/plain":
+            payload = part.get_payload(decode=True)
+            if payload:
+                charset = part.get_content_charset() or "utf-8"
+                try:
+                    return payload.decode(charset, errors="replace")[:max_len]
+                except (LookupError, TypeError):
+                    return payload.decode("utf-8", errors="replace")[:max_len]
+    for part in msg.walk():
+        if part.is_multipart():
+            continue
+        if part.get_content_type() == "text/html":
+            payload = part.get_payload(decode=True)
+            if payload:
+                charset = part.get_content_charset() or "utf-8"
+                try:
+                    html = payload.decode(charset, errors="replace")
+                except (LookupError, TypeError):
+                    html = payload.decode("utf-8", errors="replace")
+                # Sehr einfache HTML-Tag-Entfernung (kein vollständiges Parsing)
+                text = re.sub(r"<[^>]+>", " ", html)
+                text = re.sub(r"\s+", " ", text)
+                return text[:max_len]
+    return ""
+
+
 def _extract_links(msg: Message) -> list[str]:
     seen: set[str] = set()
     ordered: list[str] = []
@@ -189,4 +222,6 @@ def _extract_links(msg: Message) -> list[str]:
             if url and url not in seen:
                 seen.add(url)
                 ordered.append(url)
-    return ordered
+    # Substring-Dedup: Plain-Text-Bodies brechen lange URLs am Zeilenende ab,
+    # die ungekürzte Variante steht meist parallel im HTML-Body. Behalte die längere.
+    return [u for u in ordered if not any(o != u and o.startswith(u) for o in ordered)]

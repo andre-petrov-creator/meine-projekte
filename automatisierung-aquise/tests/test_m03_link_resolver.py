@@ -106,18 +106,21 @@ def test_html_mit_custom_renderer(tmp_path, monkeypatch):
     head = _mock_response(content_type="text/html")
     monkeypatch.setattr(requests, "head", MagicMock(return_value=head))
 
-    rendered_pdf = tmp_path / "rendered.pdf"
-
-    def fake_renderer(url: str, target: Path) -> Path:
-        target.write_bytes(b"%PDF rendered " + url.encode())
-        return target
+    def fake_renderer(url: str, target_dir: Path) -> list[Path]:
+        # Renderer kann mehrere PDFs liefern (Exposé + Mietmatrix)
+        out = []
+        for name in ("expose.pdf", "mietmatrix.pdf"):
+            p = target_dir / name
+            p.write_bytes(b"%PDF " + name.encode() + b" " + url.encode())
+            out.append(p)
+        return out
 
     resolver.set_webpage_renderer(fake_renderer)
 
     paths = resolver.resolve(["https://makler.de/web-expose"], target_dir=tmp_path)
 
-    assert len(paths) == 1
-    assert paths[0].read_bytes().startswith(b"%PDF rendered")
+    assert len(paths) == 2
+    assert all(p.read_bytes().startswith(b"%PDF") for p in paths)
 
 
 def test_renderer_exception_kein_crash(tmp_path, monkeypatch):
@@ -138,8 +141,9 @@ def test_renderer_meldet_erfolg_aber_datei_fehlt(tmp_path, monkeypatch):
     head = _mock_response(content_type="text/html")
     monkeypatch.setattr(requests, "head", MagicMock(return_value=head))
 
-    def lying_renderer(url, target):
-        return target  # gibt Pfad zurück, schreibt aber nichts
+    def lying_renderer(url, target_dir):
+        # Behauptet Erfolg, aber Datei existiert nicht
+        return [target_dir / "phantom.pdf"]
 
     resolver.set_webpage_renderer(lying_renderer)
 
@@ -167,9 +171,10 @@ def test_mehrere_urls_gemischt(tmp_path, monkeypatch):
     monkeypatch.setattr(requests, "head", MagicMock(side_effect=head_router))
     monkeypatch.setattr(requests, "get", MagicMock(side_effect=get_router))
 
-    def fake_renderer(url, target):
-        target.write_bytes(b"%PDF rendered")
-        return target
+    def fake_renderer(url, target_dir):
+        p = target_dir / "rendered.pdf"
+        p.write_bytes(b"%PDF rendered")
+        return [p]
 
     resolver.set_webpage_renderer(fake_renderer)
 

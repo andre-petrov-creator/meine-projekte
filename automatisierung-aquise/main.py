@@ -18,15 +18,21 @@ import config
 from modules import (
     m01_email_listener,
     m02_email_parser,
+    m02b_mail_triage,
     m03_link_resolver,
+    m03b_webexpose_renderer,
     m04_pdf_classifier,
     m05_address_extractor,
     m06_folder_manager,
     m07_state_store,
     m08_logger,
+    m09_alert_mailer,
 )
 
 log = m08_logger.get_logger("main")
+
+# Webexposé-Renderer (Playwright) als Webpage-Renderer in m03 registrieren
+m03_link_resolver.set_webpage_renderer(m03b_webexpose_renderer.render)
 
 # Counter für Health-Check (nur Lese-Statistik, keine Persistenz)
 _processed_count = 0
@@ -62,29 +68,53 @@ def process_mail(raw_mail: bytes) -> None:
 
     try:
         temp_dir = m02_email_parser.temp_dir_for(message_id)
-        link_pdfs = m03_link_resolver.resolve(parsed["links"], target_dir=temp_dir)
 
-        all_pdfs = list(parsed["anhaenge"]) + list(link_pdfs)
+        # KI-Triage: Welche Anhänge/Links sind das echte Exposé?
+        triage = m02b_mail_triage.triage(parsed)
+
+        if triage is not None and not triage.is_expose_mail:
+            log.info(
+                "Mail %s ist keine Akquise-Mail (%s) — übersprungen, kein Ordner.",
+                message_id,
+                triage.begruendung,
+            )
+            m07_state_store.mark_done(message_id, "(skipped: keine Exposé-Mail)")
+            _skipped_count += 1
+            return
+
+        # Links nur die von der KI ausgewählten resolven (nicht alle 70 Tracking-Links)
+        if triage is not None:
+            urls_to_resolve = triage.expose_links
+            anhaenge_to_keep = _filter_anhaenge_by_triage(parsed["anhaenge"], triage)
+            adresse = triage.objekt_adresse
+        else:
+            # Fallback: alte Logik (alle Links, alle Anhänge, Adresse aus PDF)
+            urls_to_resolve = parsed["links"]
+            anhaenge_to_keep = list(parsed["anhaenge"])
+            adresse = None
+
+        link_pdfs = m03_link_resolver.resolve(urls_to_resolve, target_dir=temp_dir)
+
+        all_pdfs = anhaenge_to_keep + list(link_pdfs)
         log.info(
             "Mail %s: %d Anhänge + %d Link-PDFs = %d total",
             message_id,
-            len(parsed["anhaenge"]),
+            len(anhaenge_to_keep),
             len(link_pdfs),
             len(all_pdfs),
         )
 
-        classified = []
-        for pdf in all_pdfs:
-            cls = m04_pdf_classifier.classify(pdf)
-            classified.append({"path": pdf, "typ": cls["typ"]})
+        classified = _classify_pdfs(all_pdfs, triage)
 
-        adresse = _extract_address_from_expose(classified)
+        if adresse is None:
+            adresse = _extract_address_from_expose(classified)
 
         meta = {
             "message_id": message_id,
             "von": parsed["von"],
             "subject": parsed["subject"],
             "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "triage_begruendung": triage.begruendung if triage else None,
         }
         target = m06_folder_manager.store(
             adresse=adresse, files=classified, meta=meta
@@ -94,10 +124,97 @@ def process_mail(raw_mail: bytes) -> None:
         _processed_count += 1
         log.info("Mail %s → %s", message_id, target)
 
+        # Anomalie-Detection: Pipeline lief durch, aber Output verdaechtig?
+        _check_for_anomalies(
+            message_id=message_id,
+            mail_subject=parsed["subject"],
+            mail_von=parsed["von"],
+            triage=triage,
+            all_pdfs=all_pdfs,
+            adresse=adresse,
+            target=target,
+        )
+
     except Exception as exc:
         log.exception("Pipeline-Fehler für Mail %s", message_id)
         m07_state_store.mark_error(message_id, str(exc))
         _error_count += 1
+        m09_alert_mailer.send_exception_alert(
+            message_id=message_id,
+            mail_subject=parsed["subject"] if parsed else "(unparsed)",
+            mail_von=parsed["von"] if parsed else "(unknown)",
+            exc=exc,
+        )
+
+
+def _check_for_anomalies(
+    message_id: str,
+    mail_subject: str,
+    mail_von: str,
+    triage,
+    all_pdfs: list,
+    adresse: str | None,
+    target,
+) -> None:
+    """Soft-Alert wenn die Mail laut Triage Exposé enthält, aber das Ergebnis unbrauchbar ist."""
+    # Nur wenn KI sagte "ist Exposé-Mail" — sonst kein Alert
+    if triage is None or not triage.is_expose_mail:
+        return
+
+    anomalies: list[str] = []
+    details: dict = {"target_folder": str(target)}
+
+    if not all_pdfs:
+        anomalies.append("0 PDFs heruntergeladen")
+        details["expose_links_in_triage"] = triage.expose_links
+        details["expose_attachments_in_triage"] = triage.expose_attachment_filenames
+
+    if adresse is None:
+        anomalies.append("keine Adresse extrahiert (Fallback-Ordner)")
+
+    if not anomalies:
+        return
+
+    reason = " + ".join(anomalies)
+    log.warning("Anomalie bei Mail %s: %s", message_id, reason)
+    m09_alert_mailer.send_anomaly_alert(
+        message_id=message_id,
+        mail_subject=mail_subject,
+        mail_von=mail_von,
+        reason=reason,
+        details=details,
+    )
+
+
+def _filter_anhaenge_by_triage(anhaenge: list, triage) -> list:
+    """Behält nur Anhänge die laut Triage Exposé/Mietliste/Begleitdoku sind.
+    Verwirft alles andere (z. B. signature.png, unbekannte Filenames)."""
+    relevant_names = set(
+        triage.expose_attachment_filenames
+        + triage.mietaufstellung_attachment_filenames
+        + triage.begleit_attachment_filenames
+    )
+    if not relevant_names:
+        # Triage hat nichts markiert — alle Anhänge behalten (safer default)
+        return list(anhaenge)
+    return [p for p in anhaenge if p.name in relevant_names]
+
+
+def _classify_pdfs(pdfs: list, triage) -> list[dict]:
+    """Klassifiziert PDFs. Nutzt Triage-Info wenn vorhanden, sonst Filename-Heuristik."""
+    expose_names = set(triage.expose_attachment_filenames) if triage else set()
+    miet_names = set(triage.mietaufstellung_attachment_filenames) if triage else set()
+
+    classified = []
+    for pdf in pdfs:
+        if pdf.name in expose_names:
+            typ = "expose"
+        elif pdf.name in miet_names:
+            typ = "mieterliste"
+        else:
+            typ = m04_pdf_classifier.classify(pdf)["typ"]
+        classified.append({"path": pdf, "typ": typ})
+    return classified
 
 
 def _extract_address_from_expose(classified: list[dict]) -> str | None:

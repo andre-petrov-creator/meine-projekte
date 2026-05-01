@@ -31,8 +31,9 @@ from modules.m08_logger import get_logger
 
 log = get_logger(__name__)
 
-# Type-Alias: (url, target_path) -> Pfad zum gerenderten PDF oder None
-WebpageRenderer = Callable[[str, Path], Path | None]
+# Type-Alias: (url, target_dir) -> Liste der gerenderten/heruntergeladenen PDFs
+# Leere Liste bei Misserfolg (z. B. Token abgelaufen, Server-Fehler).
+WebpageRenderer = Callable[[str, Path], list[Path]]
 
 _HEAD_TIMEOUT = 10
 _GET_TIMEOUT = 60
@@ -40,13 +41,13 @@ _FORBIDDEN_PATH_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _USER_AGENT = "Mozilla/5.0 (akquise-pipeline)"
 
 
-def _default_webpage_renderer(url: str, target: Path) -> Path | None:
+def _default_webpage_renderer(url: str, target_dir: Path) -> list[Path]:
     log.warning(
         "Webseiten-Link kann nicht zu PDF gerendert werden — kein Renderer "
         "konfiguriert. URL: %s",
         url,
     )
-    return None
+    return []
 
 
 _renderer: WebpageRenderer = _default_webpage_renderer
@@ -66,15 +67,17 @@ def set_webpage_renderer(renderer: WebpageRenderer | None) -> None:
 def resolve(
     urls: list[str], target_dir: str | Path | None = None
 ) -> list[Path]:
-    """Resolved eine Liste von URLs zu lokalen PDF-Pfaden."""
+    """Resolved eine Liste von URLs zu lokalen PDF-Pfaden.
+
+    Pro URL können MEHRERE Pfade zurückkommen (z. B. wenn ein Webexposé sowohl
+    Exposé als auch Mietmatrix liefert) — alle landen in der Output-Liste."""
     target = Path(target_dir) if target_dir is not None else config.TEMP_DIR
     target.mkdir(parents=True, exist_ok=True)
 
     resolved: list[Path] = []
     for url in urls:
-        path = _resolve_one(url, target)
-        if path is not None:
-            resolved.append(path)
+        paths = _resolve_one(url, target)
+        resolved.extend(paths)
     return resolved
 
 
@@ -92,7 +95,7 @@ def run(
 # ---------------------------------------------------------------------------
 
 
-def _resolve_one(url: str, target_dir: Path) -> Path | None:
+def _resolve_one(url: str, target_dir: Path) -> list[Path]:
     try:
         ctype = _probe_content_type(url)
     except requests.RequestException as exc:
@@ -100,7 +103,8 @@ def _resolve_one(url: str, target_dir: Path) -> Path | None:
         ctype = None
 
     if ctype and "application/pdf" in ctype:
-        return _download_pdf(url, target_dir)
+        path = _download_pdf(url, target_dir)
+        return [path] if path else []
 
     if ctype and ctype.startswith("text/html"):
         return _render_webpage(url, target_dir)
@@ -109,7 +113,7 @@ def _resolve_one(url: str, target_dir: Path) -> Path | None:
     # erst GET probieren — vielleicht ist's doch ein PDF.
     pdf_path = _try_download_if_pdf(url, target_dir)
     if pdf_path is not None:
-        return pdf_path
+        return [pdf_path]
 
     # Kein PDF → letzter Versuch: rendern
     return _render_webpage(url, target_dir)
@@ -178,20 +182,20 @@ def _try_download_if_pdf(url: str, target_dir: Path) -> Path | None:
     return target
 
 
-def _render_webpage(url: str, target_dir: Path) -> Path | None:
-    target = _target_path_for(url, target_dir, suffix=".pdf")
+def _render_webpage(url: str, target_dir: Path) -> list[Path]:
     try:
-        result = _renderer(url, target)
+        results = _renderer(url, target_dir)
     except Exception:
         log.exception("Webseiten-Renderer wirft Exception für %s", url)
-        return None
-    if result is None:
-        return None
-    if not result.exists():
-        log.warning("Renderer meldet Erfolg, aber Datei fehlt: %s", result)
-        return None
-    log.info("Webseite zu PDF gerendert: %s ← %s", result.name, url)
-    return result
+        return []
+    if not results:
+        return []
+    valid = [p for p in results if p.exists()]
+    if not valid:
+        log.warning("Renderer meldet Erfolg, aber keine Dateien existieren: %s", url)
+        return []
+    log.info("Webseite gerendert: %d Datei(en) ← %s", len(valid), url[:80])
+    return valid
 
 
 def _target_path_for(url: str, target_dir: Path, suffix: str | None = None) -> Path:
